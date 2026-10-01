@@ -1,0 +1,55 @@
+name: Build Android AAB
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'www/**'
+      - 'capacitor.config.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'android/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Sync web assets into Android project
+        run: npx cap sync android
+
+      - name: Decode signing keystore
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/udhar.keystore
+
+      - name: Build signed release AAB
+        run: |
+          cd android
+          gradle bundleRelease \
+            -Pandroid.injected.signing.store.file=$PWD/app/udhar.keystore \
+            -Pandroid.injected.signing.store.password='${{ secrets.KEYSTORE_PASSWORD }}' \
+            -Pandroid.injected.signing.key.alias='${{ secrets.KEY_ALIAS }}' \
+            -Pandroid.injected.signing.key.password='${{ secrets.KEY_PASSWORD }}'
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: udhar-release-aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
