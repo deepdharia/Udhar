@@ -10,6 +10,8 @@ Udhar — Lend & Borrow Tracker
 Track money you lend friends. Big buttons, zero clutter, fully offline.
 
 ## Full description
+UDHAR KA HISAAB, SORTED.
+
 Lent money to a friend and lost track of it in your Notes app? Udhar fixes that.
 
 Udhar is a dead-simple personal ledger for money you lend and get back. Two giant terminal-style buttons — GAVE and GOT BACK — so recording takes three seconds. Every entry is date-and-time stamped, every person gets a running balance, and one tap settles up in full.
