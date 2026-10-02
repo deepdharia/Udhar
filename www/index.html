@@ -343,23 +343,10 @@ function load(){
     return d;
   } catch(e){ return null; }
 }
-/* Seed from Deep's Notes ("Funds about to come") so his real ledger is alive on first open */
+/* Fresh installs start with a clean, empty ledger.
+   (Your own entries live only in your device's localStorage — nothing ever leaves the phone.) */
 function seed(){
-  const mk = name => ({id: uid() + name, name});
-  const people = ["Pradeep","Piyush","Hrithik","Lamba","Krishna","Manish"].map(mk);
-  const byName = n => people.find(p => p.name === n).id;
-  const t0 = Date.now(), H = 36e5;
-  const E = (name, type, amount, hrsAgo, reason) =>
-    ({id: uid() + Math.random().toString(36).slice(2), personId: byName(name), type, amount, reason: reason || "", ts: t0 - hrsAgo * H});
-  const entries = [
-    E("Pradeep","gave",5000,30,"from notes"), E("Pradeep","gave",1700,26,"from notes *"), E("Pradeep","gave",3000,20,"from notes"),
-    E("Piyush","gave",10000,34,"from notes"), E("Piyush","got",2000,28,"from notes"), E("Piyush","gave",4000,18,"from notes"),
-    E("Hrithik","gave",1500,40,"from notes"), E("Hrithik","gave",2000,32,"from notes"), E("Hrithik","gave",500,22,"from notes"), E("Hrithik","gave",500,12,"from notes"),
-    E("Lamba","gave",1000,44,"from notes"),
-    E("Krishna","gave",500,36,"from notes"), E("Krishna","gave",1000,16,"from notes"),
-    E("Manish","gave",300,38,"from notes"), E("Manish","gave",150,24,"from notes"), E("Manish","gave",600,10,"from notes"),
-  ];
-  return {people, entries, settings: {currency: "₹"}, seededAt: t0};
+  return {people: [], entries: [], settings: {currency: "₹"} , createdAt: Date.now()};
 }
 DB = load();
 if (!DB) { DB = seed(); localStorage.setItem("udhar_last_backup", Date.now()); /* nudge clock starts at install, not at first open */ }
