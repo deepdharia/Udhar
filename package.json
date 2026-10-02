@@ -12,6 +12,7 @@
   "dependencies": {
     "@capacitor/android": "^7.6.9",
     "@capacitor/cli": "^7.6.9",
-    "@capacitor/core": "^7.6.9"
+    "@capacitor/core": "^7.6.9",
+    "@vercel/analytics": "^1.4.1"
   }
 }
