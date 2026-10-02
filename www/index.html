@@ -522,7 +522,9 @@ function openEntrySheet(entry, presetPerson, presetType, presetAmt, presetReason
   $("amtChips").querySelectorAll(".chip").forEach(c => c.addEventListener("click", () => { $("fAmount").value = c.dataset.a; updBtnAmts(); }));
   $("fAmount").oninput = updBtnAmts;
   updBtnAmts();
-  if (presetType) setTimeout(() => saveEntry(presetType, true), 60);
+  // one-tap settle: a preset amount saves immediately; otherwise open the sheet
+  // (person-view "I gave"/"Got back" pass a type but no amount — they must open the sheet)
+  if (presetType && presetAmt) setTimeout(() => saveEntry(presetType, true), 60);
   else openSheet("sheet-entry");
   setTimeout(() => { if (!entry && !presetPerson) $("fPerson").focus(); }, 350);
 }
