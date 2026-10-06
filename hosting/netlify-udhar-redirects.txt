@@ -1,0 +1,4 @@
+# Add these to the EXISTING Glaral site's published _redirects file, BEFORE a SPA catch-all.
+/udhar /udhar/ 301!
+/udhar/* https://udhar-dun.vercel.app/:splat 200!
+# No DNS change required for a path. Verify index, privacy.html and share.html after deploy.

@@ -1,7 +1,7 @@
 {
   "name": "Udhar — Lend & Borrow Tracker",
   "short_name": "Udhar",
-  "description": "Track money you lend to friends. Big buttons, running totals, full history. Offline-first.",
+  "description": "Udhar ka hisaab, sorted. Track money you lend to friends. Big buttons, running totals, full history. Offline-first.",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#070b16",

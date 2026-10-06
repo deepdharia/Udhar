@@ -272,12 +272,13 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;justify-conte
 <!-- SETTINGS SHEET -->
 <div class="sheet" id="sheet-settings">
   <div class="grab"></div>
-  <h3>Settings</h3><p class="hint">Your data lives only on this device.</p>
+  <h3>Settings</h3><p class="hint">Your ledger is stored on this device. Sharing is optional.</p>
   <div class="fld"><label>CURRENCY SYMBOL</label><input type="text" id="setCur" maxlength="3"></div>
-  <div class="srow" id="rowExport"><div class="ic">💾</div><div>Backup data<small>Download everything as JSON</small></div></div>
+  <div class="srow" id="rowExport"><div class="ic">💾</div><div>Backup data<small>Copy JSON in the app; download on the web</small></div></div>
   <div class="srow" id="rowShare"><div class="ic">🔗</div><div>Share ledger link<small>Anyone with the link can view (read-only)</small></div></div>
   <div class="srow" id="rowImport"><div class="ic">📥</div><div>Restore backup<small>Load a previously saved JSON</small></div></div>
   <div class="srow" id="rowWipe"><div class="ic">🧨</div><div style="color:var(--red)">Erase everything<small>Delete all people and entries</small></div></div>
+  <a class="srow" href="privacy.html" style="color:inherit;text-decoration:none"><div class="ic">🔒</div><div>Privacy policy<small>Storage, sharing and deletion</small></div></a>
   <input type="file" id="importFile" accept="application/json" style="display:none">
 </div>
 
@@ -334,7 +335,7 @@ function toast(msg){ const t = $("toast"); t.textContent = msg; t.classList.add(
 /* ================= state ================= */
 const DB_KEY = "funds_v1";
 let DB = null;
-function save(){ try { localStorage.setItem(DB_KEY, JSON.stringify(DB)); } catch(e){} }
+function save(){ try { localStorage.setItem(DB_KEY, JSON.stringify(DB)); return true; } catch(e){ alert("Your changes could not be saved. Storage may be full or unavailable. Back up your ledger before closing the app."); return false; } }
 function load(){
   try { const raw = localStorage.getItem(DB_KEY); if (!raw) return null;
     const d = JSON.parse(raw);
@@ -587,7 +588,6 @@ $("rowExport").addEventListener("click", () => {
   if (IN_APP){
     $("backupText").value = json;
     closeSheets(); openSheet("sheet-backup");
-    markBackedUp();
     return;
   }
   const blob = new Blob([json], {type: "application/json"});
@@ -600,7 +600,7 @@ $("rowExport").addEventListener("click", () => {
   toast("Backup downloaded 💾");
 });
 $("copyBackup").addEventListener("click", async () => {
-  try { await navigator.clipboard.writeText($("backupText").value); toast("Backup copied 📋 — paste it somewhere safe"); }
+  try { await navigator.clipboard.writeText($("backupText").value); markBackedUp(); toast("Backup copied 📋 — paste it somewhere safe"); }
   catch(_){ $("backupText").select(); toast("Copy failed — long-press the text to copy it manually"); }
 });
 $("closeBackup").addEventListener("click", closeSheets);
@@ -637,16 +637,16 @@ function encShare(obj){
 }
 /* Always points at the live site: inside the Android app the page runs on
    https://localhost, and a localhost link is useless to anyone receiving it. */
-const VERCEL_SHARE = "https://udhar-dun.vercel.app/share.html";
+const VERCEL_SHARE = "https://glaral.com/udhar/share.html";
 function shareBase(){
   const o = location.origin || "", p = location.protocol || "";
   if (!o || o === "null" || /^(file|capacitor):/i.test(p) || /localhost/i.test(o)) return VERCEL_SHARE;
-  return o + location.pathname.replace(/[^/]*$/, "") + "share.html";
+  return VERCEL_SHARE;
 }
 function payloadFor(personId){
   const cur = DB.settings.currency || "₹";
   const mk = p => ({name: p.name, entries: personEntries(p.id).slice().reverse()
-    .map(e => ({t: e.type === "gave" ? "g" : "r", a: e.amount, ts: e.ts, n: e.note || ""}))});
+    .map(e => ({t: e.type === "gave" ? "g" : "r", a: e.amount, ts: e.ts, n: e.reason || e.note || ""}))});
   const list = personId
     ? [mk(DB.people.find(x => x.id === personId))].filter(Boolean)
     : DB.people.map(mk);
@@ -654,6 +654,7 @@ function payloadFor(personId){
 }
 async function shareLedger(personId){
   if (!DB.people.length){ toast("Nothing to share yet"); return; }
+  if (!confirm("This link contains names, amounts and notes. Anyone with it can read and forward the ledger. It cannot be revoked. Share only with permission. Continue?")) return;
   const base = shareBase();
   if (!base){ toast("Publish the app first (Vercel) — then links work"); return; }
   const code = encShare(payloadFor(personId));

@@ -35,12 +35,15 @@ header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-
   padding:calc(14px + env(safe-area-inset-top)) 20px 12px;
   background:rgba(7,11,22,.72);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
   border-bottom:1px solid rgba(255,255,255,.07)}
-.brand{display:flex;align-items:center;gap:10px}
-.logo{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;font-size:20px;
-  background:linear-gradient(135deg,rgba(34,229,132,.25),rgba(77,163,255,.25));
-  border:1px solid var(--stroke2);backdrop-filter:blur(8px)}
-.brand h1{font-size:19px;font-weight:800;letter-spacing:.2px}
-.brand small{display:block;font-size:11px;color:var(--muted);font-weight:500;letter-spacing:.4px}
+.brand{display:flex;align-items:center;gap:11px}
+.logo{width:42px;height:42px;border-radius:15px;display:grid;place-items:center;
+  background:linear-gradient(135deg,#101C33,#0B1020);
+  border:1px solid var(--stroke2);box-shadow:0 4px 20px rgba(34,197,94,.28)}
+.logo svg{width:27px;height:27px;display:block}
+.wordmark{font-size:25px;font-weight:800;letter-spacing:-1.4px;line-height:1;
+  background:linear-gradient(115deg,#D1FAE5 0%,#4ADE80 45%,#22C55E 100%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
+.brand small{display:block;font-size:9px;color:var(--muted);font-weight:700;letter-spacing:2.4px;margin-top:4px}
 .iconbtn{width:40px;height:40px;border-radius:14px;border:1px solid var(--stroke);background:var(--glass);
   color:var(--text);font-size:18px;display:grid;place-items:center;cursor:pointer;backdrop-filter:blur(8px)}
 .iconbtn:active{transform:scale(.94)}
@@ -124,6 +127,10 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;justify-conte
   width:100%;background:rgba(255,255,255,.06);border:1px solid var(--stroke);border-radius:15px;
   color:var(--text);font-family:var(--font);font-size:16px;padding:14px;outline:none}
 .fld input:focus{border-color:rgba(34,229,132,.55);box-shadow:0 0 0 3px rgba(34,229,132,.14)}
+.fld textarea{
+  width:100%;background:rgba(255,255,255,.06);border:1px solid var(--stroke);border-radius:15px;
+  color:var(--text);font-family:ui-monospace,monospace;font-size:11px;padding:12px;outline:none;resize:vertical}
+.fld textarea:focus{border-color:rgba(34,229,132,.55);box-shadow:0 0 0 3px rgba(34,229,132,.14)}
 .amtwrap{position:relative}
 .amtwrap .cur{position:absolute;left:16px;top:50%;transform:translateY(-50%);font-size:26px;font-weight:800;color:var(--muted)}
 .amtwrap input{font-family:var(--mono)!important;font-size:34px!important;font-weight:800!important;
@@ -181,8 +188,8 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;justify-conte
 <div class="app">
   <header>
     <div class="brand">
-      <div class="logo">💸</div>
-      <div><h1>Udhar<small>LEND &amp; BORROW TRACKER</small></h1></div>
+      <div class="logo"><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="20" fill="#22C55E"/><circle cx="24" cy="24" r="16.4" fill="#16A34A"/><g stroke="#fff" stroke-width="3.4" stroke-linecap="round" fill="none"><path d="M15 17h18M15 23h18M24 17v17M24 26c4.5 0 7 2.4 8.5 7"/></g></svg></div>
+      <div><div class="wordmark">udhar</div><small>UDHAR KA HISAAB, SORTED.</small></div>
     </div>
     <button class="iconbtn" id="settingsBtn" aria-label="Settings">⚙️</button>
   </header>
@@ -265,13 +272,33 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;justify-conte
 <!-- SETTINGS SHEET -->
 <div class="sheet" id="sheet-settings">
   <div class="grab"></div>
-  <h3>Settings</h3><p class="hint">Your data lives only on this device.</p>
+  <h3>Settings</h3><p class="hint">Your ledger is stored on this device. Sharing is optional.</p>
   <div class="fld"><label>CURRENCY SYMBOL</label><input type="text" id="setCur" maxlength="3"></div>
-  <div class="srow" id="rowExport"><div class="ic">💾</div><div>Backup data<small>Download everything as JSON</small></div></div>
+  <div class="srow" id="rowExport"><div class="ic">💾</div><div>Backup data<small>Copy JSON in the app; download on the web</small></div></div>
   <div class="srow" id="rowShare"><div class="ic">🔗</div><div>Share ledger link<small>Anyone with the link can view (read-only)</small></div></div>
   <div class="srow" id="rowImport"><div class="ic">📥</div><div>Restore backup<small>Load a previously saved JSON</small></div></div>
   <div class="srow" id="rowWipe"><div class="ic">🧨</div><div style="color:var(--red)">Erase everything<small>Delete all people and entries</small></div></div>
+  <a class="srow" href="privacy.html" style="color:inherit;text-decoration:none"><div class="ic">🔒</div><div>Privacy policy<small>Storage, sharing and deletion</small></div></a>
   <input type="file" id="importFile" accept="application/json" style="display:none">
+</div>
+
+<!-- BACKUP SHEET (native app: copy instead of download) -->
+<div class="sheet" id="sheet-backup">
+  <div class="grab"></div>
+  <h3>💾 Your backup</h3>
+  <p class="hint">Copy this somewhere safe — Notes, Drive, email. To restore later: Settings → Restore backup → paste it back.</p>
+  <div class="fld"><label>BACKUP JSON</label><textarea id="backupText" readonly rows="7"></textarea></div>
+  <div class="rowbtns"><button class="btn primary" id="copyBackup">📋 Copy backup</button><button class="btn" id="closeBackup">Close</button></div>
+</div>
+
+<!-- RESTORE SHEET -->
+<div class="sheet" id="sheet-restore">
+  <div class="grab"></div>
+  <h3>📥 Restore backup</h3>
+  <div class="rowbtns"><button class="btn primary" id="pickFile">Choose backup file</button></div>
+  <p class="hint">…or paste a backup you copied earlier:</p>
+  <div class="fld"><label>PASTE BACKUP JSON</label><textarea id="restoreText" rows="6" placeholder='Paste the {"people":…} text here'></textarea></div>
+  <div class="rowbtns"><button class="btn primary" id="doRestorePaste">Restore from text</button><button class="btn" id="closeRestore">Cancel</button></div>
 </div>
 
 <!-- BACKUP NUDGE -->
@@ -308,7 +335,7 @@ function toast(msg){ const t = $("toast"); t.textContent = msg; t.classList.add(
 /* ================= state ================= */
 const DB_KEY = "funds_v1";
 let DB = null;
-function save(){ try { localStorage.setItem(DB_KEY, JSON.stringify(DB)); } catch(e){} }
+function save(){ try { localStorage.setItem(DB_KEY, JSON.stringify(DB)); return true; } catch(e){ alert("Your changes could not be saved. Storage may be full or unavailable. Back up your ledger before closing the app."); return false; } }
 function load(){
   try { const raw = localStorage.getItem(DB_KEY); if (!raw) return null;
     const d = JSON.parse(raw);
@@ -317,25 +344,14 @@ function load(){
     return d;
   } catch(e){ return null; }
 }
-/* Seed from Deep's Notes ("Funds about to come") so his real ledger is alive on first open */
+/* Fresh installs start with a clean, empty ledger.
+   (Your own entries live only in your device's localStorage — nothing ever leaves the phone.) */
 function seed(){
-  const mk = name => ({id: uid() + name, name});
-  const people = ["Pradeep","Piyush","Hrithik","Lamba","Krishna","Manish"].map(mk);
-  const byName = n => people.find(p => p.name === n).id;
-  const t0 = Date.now(), H = 36e5;
-  const E = (name, type, amount, hrsAgo, reason) =>
-    ({id: uid() + Math.random().toString(36).slice(2), personId: byName(name), type, amount, reason: reason || "", ts: t0 - hrsAgo * H});
-  const entries = [
-    E("Pradeep","gave",5000,30,"from notes"), E("Pradeep","gave",1700,26,"from notes *"), E("Pradeep","gave",3000,20,"from notes"),
-    E("Piyush","gave",10000,34,"from notes"), E("Piyush","got",2000,28,"from notes"), E("Piyush","gave",4000,18,"from notes"),
-    E("Hrithik","gave",1500,40,"from notes"), E("Hrithik","gave",2000,32,"from notes"), E("Hrithik","gave",500,22,"from notes"), E("Hrithik","gave",500,12,"from notes"),
-    E("Lamba","gave",1000,44,"from notes"),
-    E("Krishna","gave",500,36,"from notes"), E("Krishna","gave",1000,16,"from notes"),
-    E("Manish","gave",300,38,"from notes"), E("Manish","gave",150,24,"from notes"), E("Manish","gave",600,10,"from notes"),
-  ];
-  return {people, entries, settings: {currency: "₹"}, seededAt: t0};
+  return {people: [], entries: [], settings: {currency: "₹"} , createdAt: Date.now()};
 }
-DB = load() || seed(); save();
+DB = load();
+if (!DB) { DB = seed(); localStorage.setItem("udhar_last_backup", Date.now()); /* nudge clock starts at install, not at first open */ }
+save();
 
 /* ================= derived ================= */
 const person = id => DB.people.find(p => p.id === id);
@@ -507,7 +523,9 @@ function openEntrySheet(entry, presetPerson, presetType, presetAmt, presetReason
   $("amtChips").querySelectorAll(".chip").forEach(c => c.addEventListener("click", () => { $("fAmount").value = c.dataset.a; updBtnAmts(); }));
   $("fAmount").oninput = updBtnAmts;
   updBtnAmts();
-  if (presetType) setTimeout(() => saveEntry(presetType, true), 60);
+  // one-tap settle: a preset amount saves immediately; otherwise open the sheet
+  // (person-view "I gave"/"Got back" pass a type but no amount — they must open the sheet)
+  if (presetType && presetAmt) setTimeout(() => saveEntry(presetType, true), 60);
   else openSheet("sheet-entry");
   setTimeout(() => { if (!entry && !presetPerson) $("fPerson").focus(); }, 350);
 }
@@ -560,28 +578,48 @@ $("btnDelete").addEventListener("click", () => {
 /* ================= settings ================= */
 $("settingsBtn").addEventListener("click", () => { $("setCur").value = DB.settings.currency || "₹"; openSheet("sheet-settings"); });
 $("setCur").addEventListener("input", e => { DB.settings.currency = e.target.value.trim() || "₹"; save(); renderHome(); });
+/* Inside the installed app the page runs on https://localhost — Android's
+   WebView silently drops blob downloads, so export via copy-to-clipboard. */
+const IN_APP = location.protocol === "capacitor:" || /localhost/i.test(location.hostname || "");
+const backupJson = () => JSON.stringify(DB, null, 2);
+const markBackedUp = () => { localStorage.setItem("udhar_last_backup", Date.now()); localStorage.removeItem("udhar_nudge_snooze"); };
 $("rowExport").addEventListener("click", () => {
-  const blob = new Blob([JSON.stringify(DB, null, 2)], {type: "application/json"});
+  const json = backupJson();
+  if (IN_APP){
+    $("backupText").value = json;
+    closeSheets(); openSheet("sheet-backup");
+    return;
+  }
+  const blob = new Blob([json], {type: "application/json"});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = "udhar-backup-" + new Date().toISOString().slice(0,10) + ".json";
-  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-  localStorage.setItem("udhar_last_backup", Date.now());
-  localStorage.removeItem("udhar_nudge_snooze");
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  markBackedUp();
   toast("Backup downloaded 💾");
 });
-$("rowImport").addEventListener("click", () => $("importFile").click());
+$("copyBackup").addEventListener("click", async () => {
+  try { await navigator.clipboard.writeText($("backupText").value); markBackedUp(); toast("Backup copied 📋 — paste it somewhere safe"); }
+  catch(_){ $("backupText").select(); toast("Copy failed — long-press the text to copy it manually"); }
+});
+$("closeBackup").addEventListener("click", closeSheets);
+function restoreJsonText(txt){
+  try {
+    const d = JSON.parse(txt);
+    if (!Array.isArray(d.people) || !Array.isArray(d.entries)) throw 0;
+    DB = d; DB.settings = Object.assign({currency: "₹"}, d.settings || {});
+    save(); closeSheets(); show("view-home"); toast("Backup restored ✔");
+  } catch(_){ toast("That doesn't look like an Udhar backup"); }
+}
+$("rowImport").addEventListener("click", () => { closeSheets(); $("restoreText").value = ""; openSheet("sheet-restore"); });
+$("pickFile").addEventListener("click", () => $("importFile").click());
+$("closeRestore").addEventListener("click", closeSheets);
+$("doRestorePaste").addEventListener("click", () => restoreJsonText($("restoreText").value));
 $("importFile").addEventListener("change", e => {
   const f = e.target.files[0]; if (!f) return;
   const r = new FileReader();
-  r.onload = () => {
-    try {
-      const d = JSON.parse(r.result);
-      if (!Array.isArray(d.people) || !Array.isArray(d.entries)) throw 0;
-      DB = d; DB.settings = Object.assign({currency: "₹"}, d.settings || {});
-      save(); closeSheets(); show("view-home"); toast("Backup restored ✔");
-    } catch(_){ toast("That file doesn't look like an Udhar backup"); }
-  };
+  r.onload = () => restoreJsonText(r.result);
   r.readAsText(f); e.target.value = "";
 });
 $("rowWipe").addEventListener("click", () => {
@@ -597,14 +635,18 @@ function encShare(obj){
   const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
   return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
+/* Always points at the live site: inside the Android app the page runs on
+   https://localhost, and a localhost link is useless to anyone receiving it. */
+const VERCEL_SHARE = "https://glaral.com/udhar/share.html";
 function shareBase(){
-  if (!location.origin || location.origin === "null") return null;
-  return location.origin + location.pathname.replace(/[^/]*$/, "") + "share.html";
+  const o = location.origin || "", p = location.protocol || "";
+  if (!o || o === "null" || /^(file|capacitor):/i.test(p) || /localhost/i.test(o)) return VERCEL_SHARE;
+  return VERCEL_SHARE;
 }
 function payloadFor(personId){
   const cur = DB.settings.currency || "₹";
   const mk = p => ({name: p.name, entries: personEntries(p.id).slice().reverse()
-    .map(e => ({t: e.type === "gave" ? "g" : "r", a: e.amount, ts: e.ts, n: e.note || ""}))});
+    .map(e => ({t: e.type === "gave" ? "g" : "r", a: e.amount, ts: e.ts, n: e.reason || e.note || ""}))});
   const list = personId
     ? [mk(DB.people.find(x => x.id === personId))].filter(Boolean)
     : DB.people.map(mk);
@@ -612,6 +654,7 @@ function payloadFor(personId){
 }
 async function shareLedger(personId){
   if (!DB.people.length){ toast("Nothing to share yet"); return; }
+  if (!confirm("This link contains names, amounts and notes. Anyone with it can read and forward the ledger. It cannot be revoked. Share only with permission. Continue?")) return;
   const base = shareBase();
   if (!base){ toast("Publish the app first (Vercel) — then links work"); return; }
   const code = encShare(payloadFor(personId));

@@ -4,7 +4,7 @@
 Udhar — Lend & Borrow Tracker
 
 ## Package
-`com.deepdharia.udhar` · version 1.0 (versionCode 1)
+`com.deepdharia.udhar` · version 1.0.1 (versionCode 6)
 
 ## Short description (≤80 chars)
 Track money you lend friends. Big buttons, zero clutter, fully offline.
@@ -24,7 +24,7 @@ Udhar is a dead-simple personal ledger for money you lend and get back. Two gian
 • Share any ledger as a read-only link — anyone with the link can view it, no app needed
 • Gentle backup reminders so a lost phone never means lost records
 • One-tap Settle up when a friend clears their dues
-• 100% offline — no login, no account, your data never leaves your phone
+• Offline ledger — no login or account; send ledger details only when you choose to share
 • Free forever core, backup & restore your data as JSON anytime
 
 No spreadsheets. No mental math. Just Udhar.
@@ -38,9 +38,9 @@ Finance
 
 ## Data safety (Play Console → Data safety form)
 - Does the app collect or share any user data? **No.**
-- Data types collected: **None.** No location, no contacts, no identifiers, no financial info leaves the device.
-- All ledger data is stored locally on-device (localStorage). Export creates a JSON file the user handles themselves.
-- Privacy policy URL: `https://udhar.vercel.app/privacy.html` (update if the Vercel project name differs)
+- Data types collected: **None.** No analytics, advertising or developer ledger collection. Review user-initiated sharing exceptions against the current Data Safety questionnaire.
+- All ledger data is stored locally on-device (localStorage). Android export copies JSON; web export downloads JSON. Optional WhatsApp and ledger-link sharing are user-directed.
+- Privacy policy URL: `https://glaral.com/udhar/privacy.html`
 
 ## Permissions
 v1 requests **zero** runtime permissions. No SMS features — the app is fully manual and offline.
@@ -50,5 +50,5 @@ v1 requests **zero** runtime permissions. No SMS features — the app is fully m
 - Feature graphic 1024×500
 - 2+ phone screenshots (min 1080px)
 
-## Release notes — v1.0
+## Release notes — v1.0.1
 First release: track money lent & received with big one-tap buttons, per-person balances, full history, WhatsApp nudges, offline-first.

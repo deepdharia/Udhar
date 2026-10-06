@@ -1,10 +1,10 @@
 # Udhar — Lend & Borrow Tracker
 
-Personal lending ledger. Big terminal-style **GAVE / GOT BACK** buttons, per-person running balances, full date-&-time-stamped history, WhatsApp nudges, one-tap settle-up, JSON backup/restore. Offline-first, no login, zero permissions in v1.
+Personal lending ledger. Big terminal-style **GAVE / GOT BACK** buttons, per-person running balances, full date-&-time-stamped history, WhatsApp nudges, one-tap settle-up, JSON backup/restore. Offline-first, no login, no dangerous runtime permissions.
 
 - Web app: `www/index.html` (single file, also PWA-ready via `www/manifest.webmanifest`)
 - Android wrapper: Capacitor 7, package `com.deepdharia.udhar`
-- Privacy policy: `www/privacy.html` → served at `https://udhar.vercel.app/privacy.html` after Vercel import
+- Privacy policy: `www/privacy.html` → served at `https://glaral.com/udhar/privacy.html` after Vercel import
 
 ## Publish pipeline (the human steps)
 
@@ -18,7 +18,7 @@ Personal lending ledger. Big terminal-style **GAVE / GOT BACK** buttons, per-per
      -keyalg RSA -keysize 2048 -validity 10000
    base64 -w0 udhar.keystore   # copy the output
    ```
-   ⚠️ Back up `udhar.keystore` + its passwords forever. Lose them = you can never update the app.
+   ⚠️ Back up `udhar.keystore` + its passwords forever. Keep them secure. Play App Signing can allow an upload-key reset if needed.
 5. **Repo → Settings → Secrets and variables → Actions** — add 4 secrets:
    `KEYSTORE_BASE64` (output of step 4), `KEYSTORE_PASSWORD`, `KEY_ALIAS` (`udhar`), `KEY_PASSWORD`.
 6. **Actions tab → Build Android AAB → Run workflow** → download the `udhar-release-aab` artifact.
@@ -26,5 +26,13 @@ Personal lending ledger. Big terminal-style **GAVE / GOT BACK** buttons, per-per
 8. **Closed test first**: new personal accounts must run a 14-day closed test with 12+ testers (friends/family on Android) before production release.
 
 ## Notes
-- v1 ships with **zero** Android permissions — no SMS features, no background anything. Fully manual, fully offline.
+- v1 has Internet access and **zero dangerous runtime** Android permissions — no SMS features, no background anything. Fully manual, fully offline.
 - Monetization hooks: AdMob/InMobi mediation + one-time Pro — deferred to post-launch.
+
+## Release 1.0.1
+- versionCode 6; minSdk 24; compile/target SDK 36; AGP 8.10.1; Gradle 8.11.1; JDK 21.
+- CI uses npm ci, syncs assets, runs lintRelease, builds/signs the bundle, and verifies its JAR signature.
+- Canonical app: https://glaral.com/udhar/ ; policy: https://glaral.com/udhar/privacy.html .
+- Keep existing Glaral DNS. Configure /udhar on its Netlify host using the rules in hosting/netlify-udhar-redirects.txt, before any SPA catch-all.
+- Install and test API 24/25 and 36; verify keyboard/insets, offline ledger, settle-up, export/restore and sharing. Check the upload certificate against Play Console.
+- Complete Play Console support email, content rating, financial-features declaration, Data Safety and store graphics.

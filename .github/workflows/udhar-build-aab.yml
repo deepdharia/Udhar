@@ -9,7 +9,11 @@ on:
       - 'package.json'
       - 'package-lock.json'
       - 'android/**'
+      - '.github/workflows/udhar-build-aab.yml'
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   build:
@@ -30,22 +34,37 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Sync web assets into Android project
         run: npx cap sync android
 
       - name: Decode signing keystore
-        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/udhar.keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          test -n "$KEYSTORE_BASE64"
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > android/app/udhar.keystore
 
-      - name: Build signed release AAB
+      - name: Build and verify signed release AAB
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           cd android
-          gradle bundleRelease \
-            -Pandroid.injected.signing.store.file=$PWD/app/udhar.keystore \
-            -Pandroid.injected.signing.store.password='${{ secrets.KEYSTORE_PASSWORD }}' \
-            -Pandroid.injected.signing.key.alias='${{ secrets.KEY_ALIAS }}' \
-            -Pandroid.injected.signing.key.password='${{ secrets.KEY_PASSWORD }}'
+          chmod +x gradlew
+          ./gradlew lintRelease bundleRelease --no-daemon \
+            -Pandroid.injected.signing.store.file="$PWD/app/udhar.keystore" \
+            -Pandroid.injected.signing.store.password="$KEYSTORE_PASSWORD" \
+            -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
+            -Pandroid.injected.signing.key.password="$KEY_PASSWORD"
+          jarsigner -verify app/build/outputs/bundle/release/app-release.aab | tee signature-verification.txt
+          grep -q 'jar verified' signature-verification.txt
+
+      - name: Remove temporary keystore
+        if: always()
+        run: rm -f android/app/udhar.keystore
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
