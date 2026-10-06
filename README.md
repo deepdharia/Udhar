@@ -36,3 +36,5 @@ Personal lending ledger. Big terminal-style **GAVE / GOT BACK** buttons, per-per
 - Keep existing Glaral DNS. Configure /udhar on its Netlify host using the rules in hosting/netlify-udhar-redirects.txt, before any SPA catch-all.
 - Install and test API 24/25 and 36; verify keyboard/insets, offline ledger, settle-up, export/restore and sharing. Check the upload certificate against Play Console.
 - Complete Play Console support email, content rating, financial-features declaration, Data Safety and store graphics.
+
+Until the Netlify route is verified, ledger links continue using the working Vercel host. Then set CANONICAL_HOST_READY=true in www/index.html, run cap sync, rebuild, and deploy.

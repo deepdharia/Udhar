@@ -637,7 +637,9 @@ function encShare(obj){
 }
 /* Always points at the live site: inside the Android app the page runs on
    https://localhost, and a localhost link is useless to anyone receiving it. */
-const VERCEL_SHARE = "https://glaral.com/udhar/share.html";
+// Enable after the Netlify /udhar route is live and verified.
+const CANONICAL_HOST_READY = false;
+const VERCEL_SHARE = CANONICAL_HOST_READY ? "https://glaral.com/udhar/share.html" : "https://udhar-dun.vercel.app/share.html";
 function shareBase(){
   const o = location.origin || "", p = location.protocol || "";
   if (!o || o === "null" || /^(file|capacitor):/i.test(p) || /localhost/i.test(o)) return VERCEL_SHARE;
