@@ -37,4 +37,10 @@ Personal lending ledger. Big terminal-style **GAVE / GOT BACK** buttons, per-per
 - Install and test API 24/25 and 36; verify keyboard/insets, offline ledger, settle-up, export/restore and sharing. Check the upload certificate against Play Console.
 - Complete Play Console support email, content rating, financial-features declaration, Data Safety and store graphics.
 
-Until the Netlify route is verified, ledger links continue using the working Vercel host. Then set CANONICAL_HOST_READY=true in www/index.html, run cap sync, rebuild, and deploy.
+The new Glaral studio serves Udhar directly at /udhar, with its product page at /projects/udhar. glaral.com has been attached to that site but its DNS verification is pending. Share links use glaral.com/udhar/share.html only when already running at the verified custom host; Android and the Vercel host keep the working Vercel share URL.
+
+
+## Logo update (1.0.2 / versionCode 7)
+The supplied green U-arrow artwork is used for the app header, favicon, Apple/PWA icons, Android adaptive and legacy launchers, and hosting/play-store-icon.png. Android adaptive artwork is padded to protect the U in launcher masks. Run the signed Android workflow and upload the new bundle to your chosen Play track.
+
+Changing browser origins does not migrate localStorage. Export your ledger on the old site and restore the JSON backup at glaral.com/udhar.
