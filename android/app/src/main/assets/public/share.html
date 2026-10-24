@@ -39,6 +39,7 @@
   .empty{text-align:center;color:var(--mut);margin:60px 20px;line-height:1.7}
   footer{text-align:center;color:var(--mut);font-size:12px;margin-top:34px;line-height:1.8}
   footer b{color:var(--txt)}
+  .chead{gap:12px;flex-wrap:wrap}.chead b,.meta{overflow-wrap:anywhere}.total .amt{overflow-wrap:anywhere}
 </style>
 </head>
 <body>
@@ -53,10 +54,11 @@
   <div id="out"></div>
   <footer id="foot" style="display:none">
     This is a <b>read-only</b> snapshot — it can't be edited here.<br>
-    Only people with this link can view it.<br><br>
+    Anyone with this complete link can read and forward it. It has no expiry or revocation.<br><br>
     Made with <b>Udhar</b> — the dead-simple lending tracker.
   </footer>
 </div>
+<script src="ledger-core.js"></script>
 <script>
 "use strict";
 function decShare(s){
@@ -69,37 +71,34 @@ function fmtDate(ts){
   return d.toLocaleDateString(undefined, {day: "numeric", month: "short", year: "numeric"}) +
     ", " + d.toLocaleTimeString(undefined, {hour: "numeric", minute: "2-digit"});
 }
-function esc(s){ return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function esc(s){ return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 (function(){
   const out = document.getElementById("out");
-  let data = null;
+  let data, ledger;
   try {
-    const m = location.hash.match(/#d=([A-Za-z0-9\-_]+)/);
-    if (m) data = decShare(m[1]);
-  } catch(_) {}
-  if (!data || data.v !== 1 || !Array.isArray(data.people) || !data.people.length){
-    out.innerHTML = '<div class="empty">🔗<br>This link doesn\'t contain a ledger.<br>Ask the sender for a fresh share link.</div>';
+    const m = location.hash.match(/^#d=([A-Za-z0-9\-_]{1,8000})$/);
+    if (!m) throw new Error("Missing ledger");
+    data = decShare(m[1]); ledger = UdharLedger.shared(data);
+  } catch(_) {
+    out.innerHTML = '<div class="empty">🔗<br>This link is incomplete or contains an invalid ledger.<br>Ask the sender for a fresh share link.</div>';
     return;
   }
-  const cur = data.cur || "₹";
-  const bal = p => p.entries.reduce((s,e) => s + (e.t === "g" ? e.a : -e.a), 0);
-  const grand = data.people.reduce((s,p) => s + Math.max(0, bal(p)), 0);
-  document.getElementById("sub").textContent =
-    "Shared " + new Date(data.at).toLocaleDateString(undefined, {day:"numeric",month:"short",year:"numeric"});
-  let html = '<div class="total"><small>TOTAL OUTSTANDING</small><div class="amt pos">' +
-    esc(cur) + grand.toLocaleString("en-IN") + "</div></div>";
-  for (const p of data.people){
-    const b = bal(p);
-    html += '<div class="card"><div class="chead"><b>' + esc(p.name) + "</b><span class=\"" +
-      (b >= 0 ? "pos" : "neg") + "\">" + esc(cur) + Math.abs(b).toLocaleString("en-IN") +
-      (b >= 0 ? " to receive" : " to pay") + "</span></div>";
-    const es = p.entries.slice().sort((a,b2) => b2.ts - a.ts);
+  const money = n => esc(ledger.settings.currency) + n.toLocaleString("en-IN", {maximumFractionDigits: 2});
+  const total = UdharLedger.totals(ledger);
+  document.getElementById("sub").textContent = "Shared " + fmtDate(data.at) + " · Balances are from the sender’s perspective";
+  let html = '<div class="total"><small>SENDER TO RECEIVE</small><div class="amt pos">' + money(total.recv) +
+    '</div><small>SENDER TO PAY</small><div class="amt neg">' + money(total.pay) + '</div></div>';
+  for (const p of ledger.people){
+    const b = UdharLedger.balance(ledger, p.id);
+    html += '<div class="card"><div class="chead"><b>' + esc(p.name) + '</b><span class="' +
+      (b >= 0 ? "pos" : "neg") + '">' + money(Math.abs(b)) +
+      (b > 0 ? " to receive" : b < 0 ? " to pay" : " settled") + "</span></div>";
+    const es = ledger.entries.filter(e => e.personId === p.id).sort((a,b) => b.ts - a.ts);
     for (const e of es){
-      const gave = e.t === "g";
-      html += '<div class="e"><div><div>' + (gave ? "📤 Given" : "📥 Received back") + "</div>" +
-        '<div class="meta">' + fmtDate(e.ts) + (e.n ? " · " + esc(e.n) : "") + "</div></div>" +
-        '<div class="amt ' + (gave ? "pos" : "neg") + '">' + (gave ? "+" : "−") + esc(cur) +
-        Number(e.a).toLocaleString("en-IN") + "</div></div>";
+      const gave = e.type === "gave";
+      html += '<div class="e"><div><div>' + (gave ? "📤 Given" : "📥 Received back") + '</div><div class="meta">' +
+        fmtDate(e.ts) + (e.reason ? " · " + esc(e.reason) : "") + '</div></div><div class="amt ' +
+        (gave ? "pos" : "neg") + '">' + (gave ? "+" : "−") + money(e.amount) + "</div></div>";
     }
     html += "</div>";
   }

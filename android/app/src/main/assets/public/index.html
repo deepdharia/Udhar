@@ -184,6 +184,15 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;justify-conte
   padding:12px 14px;font-size:12.5px;color:#ffd48a;line-height:1.55;margin-bottom:14px}
 .searchbar{width:100%;background:var(--glass);border:1px solid var(--stroke);border-radius:15px;color:var(--text);
   font-family:var(--font);font-size:15px;padding:13px 16px;outline:none;margin-bottom:6px}
+/* Keyboard and small-screen accessibility */
+:focus-visible{outline:2px solid var(--green);outline-offset:3px}
+.sheet-close{position:absolute;right:16px;top:12px;font-size:26px}
+.sheet h3{padding-right:44px}
+.toast{white-space:normal;text-align:center;width:max-content}
+#storageWarning{margin:16px}
+.stat .val,.pbal .amt,.eamt,.net{overflow-wrap:anywhere}
+@media(max-width:360px){.stat .val{font-size:19px}.navbtn{padding:10px}.bigbtn .t{font-size:15px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
@@ -196,6 +205,11 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;justify-conte
     <button class="iconbtn" id="settingsBtn" aria-label="Settings">⚙️</button>
   </header>
 
+  <div id="storageWarning" class="note" role="alert" hidden>
+    <strong>Your ledger needs attention.</strong> <span id="storageMessage"></span>
+    <button class="btn" id="recoverRaw">Copy original saved data</button>
+    <button class="btn" id="reloadLedger">Reload saved ledger</button>
+  </div>
   <!-- HOME -->
   <section class="view on" id="view-home">
     <div class="hero">
@@ -250,16 +264,16 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;justify-conte
   <h3 id="entryTitle">New entry</h3>
   <p class="hint">3 taps: pick a person, type the amount, hit a big button.</p>
   <div class="fld"><label>PERSON</label>
-    <input type="text" id="fPerson" placeholder="Name…" list="peopleData" autocomplete="off">
+    <input maxlength="120" type="text" id="fPerson" placeholder="Name…" list="peopleData" autocomplete="off">
     <datalist id="peopleData"></datalist>
     <div class="quick" id="recentChips"></div>
   </div>
   <div class="fld"><label>AMOUNT</label>
-    <div class="amtwrap"><span class="cur" id="curSym">₹</span><input type="number" id="fAmount" inputmode="decimal" min="0" step="any" placeholder="0"></div>
+    <div class="amtwrap"><span class="cur" id="curSym">₹</span><input type="number" id="fAmount" inputmode="decimal" min="0" step="0.01" placeholder="0"></div>
     <div class="quick" id="amtChips"></div>
   </div>
   <div class="fld"><label>REASON <span style="color:var(--faint);font-weight:600">(OPTIONAL)</span></label>
-    <input type="text" id="fReason" placeholder="e.g. dinner, cab, urgent…" autocomplete="off">
+    <input maxlength="2000" type="text" id="fReason" placeholder="e.g. dinner, cab, urgent…" autocomplete="off">
   </div>
   <div class="fld"><label>DATE &amp; TIME</label>
     <input type="datetime-local" id="fWhen">
@@ -281,6 +295,7 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;justify-conte
   <div class="srow" id="rowImport"><div class="ic">📥</div><div>Restore backup<small>Load a previously saved JSON</small></div></div>
   <div class="srow" id="rowWipe"><div class="ic">🧨</div><div style="color:var(--red)">Erase everything<small>Delete all people and entries</small></div></div>
   <a class="srow" href="privacy.html" style="color:inherit;text-decoration:none"><div class="ic">🔒</div><div>Privacy policy<small>Storage, sharing and deletion</small></div></a>
+  <a class="srow" href="help.html" style="color:inherit;text-decoration:none"><div class="ic">❔</div><div>Help &amp; testing<small>How to test, report issues and protect data · v1.0.3</small></div></a>
   <input type="file" id="importFile" accept="application/json" style="display:none">
 </div>
 
@@ -311,7 +326,8 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;justify-conte
   <div class="rowbtns"><button class="btn primary" id="nudgeBackup">Back up now</button><button class="btn" id="nudgeLater">Later</button></div>
 </div>
 
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="ledger-core.js"></script>
 <script>
 "use strict";
 /* ================= utils ================= */
@@ -329,42 +345,64 @@ function fmtDT(ts){
   const opts = {hour: "numeric", minute: "2-digit", hour12: true};
   if (sameDay) return "Today, " + d.toLocaleTimeString("en-IN", opts);
   if (d.toDateString() === y.toDateString()) return "Yesterday, " + d.toLocaleTimeString("en-IN", opts);
-  return d.toLocaleDateString("en-IN", {day: "numeric", month: "short"}) + ", " + d.toLocaleTimeString("en-IN", opts);
+  return d.toLocaleDateString("en-IN", {day: "numeric", month: "short", ...(d.getFullYear() !== now.getFullYear() ? {year: "numeric"} : {})}) + ", " + d.toLocaleTimeString("en-IN", opts);
 }
 function fmtDay(ts){ return new Date(ts).toLocaleDateString("en-IN", {weekday: "short", day: "numeric", month: "short", year: "numeric"}); }
 function toast(msg){ const t = $("toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("on"), 2200); }
 
 /* ================= state ================= */
 const DB_KEY = "funds_v1";
-let DB = null;
-function save(){ try { localStorage.setItem(DB_KEY, JSON.stringify(DB)); return true; } catch(e){ alert("Your changes could not be saved. Storage may be full or unavailable. Back up your ledger before closing the app."); return false; } }
-function load(){
-  try { const raw = localStorage.getItem(DB_KEY); if (!raw) return null;
-    const d = JSON.parse(raw);
-    if (!d || !Array.isArray(d.people) || !Array.isArray(d.entries)) return null;
-    d.settings = Object.assign({currency: "₹"}, d.settings || {});
-    return d;
-  } catch(e){ return null; }
+let DB = null, storedRaw = null, storageBlocked = false;
+function storageNotice(message){
+  $("storageMessage").textContent = message;
+  $("storageWarning").hidden = false;
 }
+function save(candidate, recovering = false){
+  if (storageBlocked && !recovering) { toast("Protect your saved data first — see the warning above."); return false; }
+  try {
+    const next = UdharLedger.validate(candidate);
+    if (localStorage.getItem(DB_KEY) !== storedRaw) {
+      storageBlocked = true;
+      storageNotice("Another window changed this ledger. Reload before making changes.");
+      return false;
+    }
+    const raw = JSON.stringify(next);
+    localStorage.setItem(DB_KEY, raw);
+    storedRaw = raw; DB = next; storageBlocked = false;
+    $("storageWarning").hidden = true;
+    return true;
+  } catch(e){
+    storageNotice("Changes were not saved. Your previous ledger is unchanged. Check available storage and try again.");
+    toast("Not saved — your previous ledger is unchanged.");
+    return false;
+  }
+}
+function load(){
+  try {
+    storedRaw = localStorage.getItem(DB_KEY);
+    return storedRaw === null ? null : UdharLedger.parse(storedRaw);
+  } catch(e){
+    storageBlocked = true;
+    storageNotice("Saved data could not be read. It has not been replaced. Copy the original data before restoring a valid backup.");
+    return null;
+  }
+}
+function remember(key, value){ try { localStorage.setItem(key, value); } catch(_) {} }
+function recalled(key){ try { return localStorage.getItem(key); } catch(_) { return null; } }
 /* Fresh installs start with a clean, empty ledger.
-   (Your own entries live only in your device's localStorage — nothing ever leaves the phone.) */
+   (Your own entries live only in your device's localStorage — sharing and backups are user-initiated.) */
 function seed(){
   return {people: [], entries: [], settings: {currency: "₹"} , createdAt: Date.now()};
 }
 DB = load();
-if (!DB) { DB = seed(); localStorage.setItem("udhar_last_backup", Date.now()); /* nudge clock starts at install, not at first open */ }
-save();
+if (!DB) { DB = seed(); if (!storageBlocked) remember("udhar_last_backup", Date.now()); }
+// Never write on startup: unreadable existing data must remain recoverable.
 
 /* ================= derived ================= */
 const person = id => DB.people.find(p => p.id === id);
 const personEntries = pid => DB.entries.filter(e => e.personId === pid).sort((a,b) => b.ts - a.ts);
-const balance = pid => DB.entries.filter(e => e.personId === pid)
-  .reduce((s,e) => s + (e.type === "gave" ? e.amount : -e.amount), 0);
-function totals(){
-  let recv = 0, pay = 0;
-  for (const p of DB.people){ const b = balance(p.id); if (b > 0) recv += b; else pay += -b; }
-  return {recv, pay};
-}
+const balance = pid => UdharLedger.balance(DB, pid);
+const totals = () => UdharLedger.totals(DB);
 const lastTs = pid => { const es = personEntries(pid); return es.length ? es[0].ts : 0; };
 if (typeof module !== "undefined") module.exports = {seed, balance, totals};
 </script>
@@ -374,8 +412,47 @@ if (typeof module !== "undefined") module.exports = {seed, balance, totals};
 let curView = "view-home", curPerson = null, editingEntry = null, searchQ = "";
 
 /* ================= sheets ================= */
-function openSheet(id){ $(id).classList.add("on"); $("scrim").classList.add("on"); }
-function closeSheets(){ document.querySelectorAll(".sheet").forEach(s => s.classList.remove("on")); $("scrim").classList.remove("on"); }
+let returnFocus = null;
+function openSheet(id){
+  if (!document.querySelector(".sheet.on")) returnFocus = document.activeElement;
+  document.querySelectorAll(".sheet").forEach(s => {
+    s.classList.remove("on"); s.setAttribute("aria-hidden", "true"); s.inert = true;
+  });
+  const sheet = $(id);
+  sheet.inert = false; sheet.setAttribute("aria-hidden", "false"); sheet.classList.add("on");
+  $("scrim").classList.add("on");
+  document.querySelector(".app").inert = true;
+  const first = sheet.querySelector("input, textarea, button, a[href]");
+  if (first) first.focus({preventScroll: true});
+}
+function closeSheets(){
+  document.querySelectorAll(".sheet").forEach(s => { s.classList.remove("on"); s.setAttribute("aria-hidden", "true"); s.inert = true; });
+  $("scrim").classList.remove("on"); document.querySelector(".app").inert = false;
+  if (returnFocus && returnFocus.isConnected) returnFocus.focus({preventScroll: true});
+  returnFocus = null; editingEntry = null;
+}
+window.udharHandleBack = function(){
+  if (document.querySelector(".sheet.on")) { closeSheets(); return true; }
+  if (curView !== "view-home") { show("view-home"); return true; }
+  return false;
+};
+document.querySelectorAll(".sheet").forEach(sheet => {
+  sheet.setAttribute("role", "dialog"); sheet.setAttribute("aria-modal", "true"); sheet.setAttribute("aria-hidden", "true"); sheet.inert = true;
+  const title = sheet.querySelector("h3");
+  if (!title.id) title.id = sheet.id + "-title";
+  sheet.setAttribute("aria-labelledby", title.id);
+  const close = document.createElement("button"); close.className = "iconbtn sheet-close";
+  close.textContent = "×"; close.setAttribute("aria-label", "Close"); close.addEventListener("click", closeSheets); sheet.prepend(close);
+});
+document.addEventListener("keydown", e => {
+  const sheet = document.querySelector(".sheet.on");
+  if (e.key === "Escape" && window.udharHandleBack()) e.preventDefault();
+  if (e.key !== "Tab" || !sheet) return;
+  const items = [...sheet.querySelectorAll("button, input, textarea, a[href]")].filter(el => !el.disabled && el.getClientRects().length);
+  const first = items[0], last = items[items.length - 1];
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+});
 $("scrim").addEventListener("click", closeSheets);
 
 /* ================= navigation ================= */
@@ -416,11 +493,11 @@ function renderHome(){
     const b = balance(p.id), n = personEntries(p.id).length;
     const cls = b > 0 ? "pos" : b < 0 ? "neg" : "zero";
     const tag = b > 0 ? "TO RECEIVE" : b < 0 ? "TO PAY" : "SETTLED";
-    return `<div class="person" data-pid="${p.id}">
+    return `<div class="person" role="button" tabindex="0" data-pid="${esc(p.id)}">
       <div class="avatar" style="background:${avColor(p.name)}">${esc(p.name[0].toUpperCase())}</div>
       <div class="pinfo"><div class="nm">${esc(p.name)}</div>
       <div class="meta">${n} ${n===1?"entry":"entries"}${n? " · " + fmtDT(lastTs(p.id)) : ""}</div></div>
-      <div class="pbal"><div class="amt ${cls}">${money(Math.abs(b))}</div><div class="tag ${cls}">${tag}</div></div>
+      <div class="pbal"><div class="amt ${cls}">${esc(money(Math.abs(b)))}</div><div class="tag ${cls}">${tag}</div></div>
       <div class="chev">›</div></div>`;
   }).join("");
   box.querySelectorAll(".person").forEach(el => el.addEventListener("click", () => openPerson(el.dataset.pid)));
@@ -447,11 +524,11 @@ function renderActivity(){
 function entryHtml(e, showName){
   const p = person(e.personId);
   const isGave = e.type === "gave";
-  return `<div class="entry" data-eid="${e.id}">
+  return `<div class="entry" role="button" tabindex="0" data-eid="${esc(e.id)}">
     <div class="etype ${isGave ? "gave" : "got"}">${isGave ? "📤" : "📥"}</div>
     <div class="einfo"><div class="rsn">${esc(e.reason || (showName && p ? p.name : (isGave ? "Gave" : "Got back")))}${showName && p && e.reason ? " · " + esc(p.name) : ""}</div>
     <div class="dt">${fmtDT(e.ts)}</div></div>
-    <div class="eamt ${isGave ? "neg" : "pos"}">${isGave ? "−" : "+"}${money(e.amount)}</div></div>`;
+    <div class="eamt ${isGave ? "neg" : "pos"}">${isGave ? "−" : "+"}${esc(money(e.amount))}</div></div>`;
 }
 function bindEntries(box){
   box.querySelectorAll(".entry").forEach(el => el.addEventListener("click", () => {
@@ -486,6 +563,9 @@ $("pdSettleBtn").addEventListener("click", () => {
   if (b === 0){ toast("Already settled ✔"); return; }
   openEntrySheet(null, curPerson, b > 0 ? "got" : "gave", Math.abs(b), "settled up");
 });
+document.addEventListener("keydown", e => {
+  if ((e.key === "Enter" || e.key === " ") && e.target.matches(".person, .entry, .srow[role=button]")) { e.preventDefault(); e.target.click(); }
+});
 $("pdWaBtn").addEventListener("click", () => {
   const p = person(curPerson); if (!p) return;
   const b = balance(curPerson);
@@ -493,7 +573,7 @@ $("pdWaBtn").addEventListener("click", () => {
   let msg = `Hi ${p.name}, quick update from my Udhar ledger:\n`;
   for (const e of es) msg += `${e.type === "gave" ? "➖ Gave" : "➕ Got back"} ${money(e.amount)} — ${fmtDT(e.ts)}${e.reason ? " (" + e.reason + ")" : ""}\n`;
   msg += b > 0 ? `\nBalance: ${money(b)} pending 🙂` : b < 0 ? `\nBalance: I owe you ${money(-b)} 🙂` : `\nAll settled ✔`;
-  window.open("https://wa.me/?text=" + encodeURIComponent(msg), "_blank");
+  window.open("https://wa.me/?text=" + encodeURIComponent(msg), "_blank", "noopener,noreferrer");
 });
 
 /* ================= entry sheet ================= */
@@ -521,15 +601,13 @@ function openEntrySheet(entry, presetPerson, presetType, presetAmt, presetReason
     $("recentChips").querySelectorAll(".chip").forEach(x => x.classList.remove("sel"));
     c.classList.add("sel");
   }));
-  $("amtChips").innerHTML = [100,500,1000,5000].map(a => `<button class="chip" data-a="${a}">${money(a)}</button>`).join("");
+  $("amtChips").innerHTML = [100,500,1000,5000].map(a => `<button class="chip" data-a="${a}">${esc(money(a))}</button>`).join("");
   $("amtChips").querySelectorAll(".chip").forEach(c => c.addEventListener("click", () => { $("fAmount").value = c.dataset.a; updBtnAmts(); }));
   $("fAmount").oninput = updBtnAmts;
   updBtnAmts();
-  // one-tap settle: a preset amount saves immediately; otherwise open the sheet
-  // (person-view "I gave"/"Got back" pass a type but no amount — they must open the sheet)
-  if (presetType && presetAmt) setTimeout(() => saveEntry(presetType, true), 60);
-  else openSheet("sheet-entry");
-  setTimeout(() => { if (!entry && !presetPerson) $("fPerson").focus(); }, 350);
+  // Review the amount before settling; opening a sheet never writes a transaction.
+  openSheet("sheet-entry");
+  if (presetType) $(presetType === "gave" ? "btnGave" : "btnGot").focus({preventScroll: true});
 }
 function updBtnAmts(){
   const a = parseFloat($("fAmount").value);
@@ -541,51 +619,61 @@ function readSheet(){
   const amount = parseFloat($("fAmount").value);
   const reason = $("fReason").value.trim();
   const when = $("fWhen").value ? new Date($("fWhen").value).getTime() : Date.now();
-  return {name, amount, reason, when: isNaN(when) ? Date.now() : when};
+  return {name, amount, reason, when};
 }
-function ensurePerson(name){
-  let p = DB.people.find(x => x.name.toLowerCase() === name.toLowerCase());
-  if (!p){ p = {id: uid(), name}; DB.people.push(p); }
+function ensurePerson(data, name){
+  let p = data.people.find(x => x.name.toLowerCase() === name.toLowerCase());
+  if (!p){ p = {id: uid(), name}; data.people.push(p); }
   return p;
 }
-function saveEntry(forceType, skipOpen){
-  const type = forceType;
+function refreshLedger(){
+  renderHome();
+  if (curView === "view-person" && curPerson && person(curPerson)) openPerson(curPerson);
+  else show(curView === "view-person" ? "view-home" : curView);
+}
+function saveEntry(type){
+  // Ignore queued/double taps once a successful save has closed the editor.
+  if (!$("sheet-entry").classList.contains("on")) return;
   const {name, amount, reason, when} = readSheet();
-  if (!name){ toast("Enter a name first"); return; }
-  if (!(amount > 0)){ toast("Enter an amount"); return; }
+  if (!name || name.length > 120){ toast("Enter a name (up to 120 characters)"); return; }
+  try { UdharLedger.minor(amount); } catch(e) { toast(e.message); return; }
+  if (!Number.isFinite(when)) { toast("Enter a valid date and time"); return; }
+  const next = JSON.parse(JSON.stringify(DB));
+  const pid = ensurePerson(next, name).id;
   if (editingEntry){
-    editingEntry.personId = ensurePerson(name).id;
-    editingEntry.type = type; editingEntry.amount = amount;
-    editingEntry.reason = reason; editingEntry.ts = when;
-    toast("Entry updated ✔");
-  } else {
-    const p = ensurePerson(name);
-    DB.entries.push({id: uid(), personId: p.id, type, amount, reason, ts: when});
-    toast(type === "gave" ? `Recorded: gave ${money(amount)} 📤` : `Recorded: got back ${money(amount)} 📥`);
-  }
-  save(); closeSheets();
-  if (curView === "view-person" && curPerson) openPerson(curPerson);
-  else show(curView);
+    const entry = next.entries.find(e => e.id === editingEntry.id);
+    if (!entry) { toast("Entry no longer exists. Reopen the ledger."); return; }
+    Object.assign(entry, {personId: pid, type, amount, reason, ts: when});
+  } else next.entries.push({id: uid(), personId: pid, type, amount, reason, ts: when});
+  const wasEditing = !!editingEntry;
+  if (!save(next)) return;
+  closeSheets(); refreshLedger();
+  toast(wasEditing ? "Entry updated ✔" : "Entry saved ✔");
 }
 $("btnGave").addEventListener("click", () => saveEntry("gave"));
 $("btnGot").addEventListener("click", () => saveEntry("got"));
 $("btnDelete").addEventListener("click", () => {
   if (!editingEntry) return;
   if (!confirm("Delete this entry?")) return;
-  DB.entries = DB.entries.filter(e => e.id !== editingEntry.id);
-  save(); closeSheets(); toast("Entry deleted");
+  const next = {...DB, entries: DB.entries.filter(e => e.id !== editingEntry.id)};
+  if (!save(next)) return;
+  closeSheets(); toast("Entry deleted");
   if (curView === "view-person" && curPerson) openPerson(curPerson); else show(curView);
 });
 
 /* ================= settings ================= */
 $("settingsBtn").addEventListener("click", () => { $("setCur").value = DB.settings.currency || "₹"; openSheet("sheet-settings"); });
-$("setCur").addEventListener("input", e => { DB.settings.currency = e.target.value.trim() || "₹"; save(); renderHome(); });
+$("setCur").addEventListener("change", e => {
+  if (!save({...DB, settings: {currency: e.target.value.trim() || "₹"}})) { e.target.value = DB.settings.currency; return; }
+  renderHome(); if (curView === "view-person") openPerson(curPerson);
+});
 /* Inside the installed app the page runs on https://localhost — Android's
    WebView silently drops blob downloads, so export via copy-to-clipboard. */
-const IN_APP = location.protocol === "capacitor:" || /localhost/i.test(location.hostname || "");
+const IN_APP = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
 const backupJson = () => JSON.stringify(DB, null, 2);
-const markBackedUp = () => { localStorage.setItem("udhar_last_backup", Date.now()); localStorage.removeItem("udhar_nudge_snooze"); };
+const markBackedUp = () => { remember("udhar_last_backup", Date.now()); remember("udhar_nudge_snooze", "0"); };
 $("rowExport").addEventListener("click", () => {
+  if (storageBlocked) { $("recoverRaw").click(); return; }
   const json = backupJson();
   if (IN_APP){
     $("backupText").value = json;
@@ -599,7 +687,7 @@ $("rowExport").addEventListener("click", () => {
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   markBackedUp();
-  toast("Backup downloaded 💾");
+  toast("Backup download started — keep the file safe 💾");
 });
 $("copyBackup").addEventListener("click", async () => {
   try { await navigator.clipboard.writeText($("backupText").value); markBackedUp(); toast("Backup copied 📋 — paste it somewhere safe"); }
@@ -608,11 +696,12 @@ $("copyBackup").addEventListener("click", async () => {
 $("closeBackup").addEventListener("click", closeSheets);
 function restoreJsonText(txt){
   try {
-    const d = JSON.parse(txt);
-    if (!Array.isArray(d.people) || !Array.isArray(d.entries)) throw 0;
-    DB = d; DB.settings = Object.assign({currency: "₹"}, d.settings || {});
-    save(); closeSheets(); show("view-home"); toast("Backup restored ✔");
-  } catch(_){ toast("That doesn't look like an Udhar backup"); }
+    const d = UdharLedger.parse(txt);
+    if (!confirm(`Replace the current ledger with ${d.people.length} people and ${d.entries.length} entries? Back up your current data first. This cannot be undone.`)) return;
+    if (!save(d, true)) return;
+    curPerson = null; searchQ = ""; $("searchInput").value = "";
+    closeSheets(); show("view-home"); toast("Backup restored ✔");
+  } catch(_){ toast("Invalid backup — your current ledger has not changed."); }
 }
 $("rowImport").addEventListener("click", () => { closeSheets(); $("restoreText").value = ""; openSheet("sheet-restore"); });
 $("pickFile").addEventListener("click", () => $("importFile").click());
@@ -620,18 +709,22 @@ $("closeRestore").addEventListener("click", closeSheets);
 $("doRestorePaste").addEventListener("click", () => restoreJsonText($("restoreText").value));
 $("importFile").addEventListener("change", e => {
   const f = e.target.files[0]; if (!f) return;
+  e.target.value = "";
+  if (f.size > UdharLedger.MAX_BACKUP_BYTES) { toast("Backup must be smaller than 10 MB"); return; }
   const r = new FileReader();
   r.onload = () => restoreJsonText(r.result);
-  r.readAsText(f); e.target.value = "";
+  r.onerror = () => toast("Could not read this file. Try pasting the backup text.");
+  r.readAsText(f);
 });
 $("rowWipe").addEventListener("click", () => {
   if (!confirm("Erase ALL people and entries? This cannot be undone.")) return;
-  DB = {people: [], entries: [], settings: DB.settings}; save();
+  if (!save({people: [], entries: [], settings: DB.settings})) return;
+  curPerson = null; searchQ = ""; $("searchInput").value = "";
   closeSheets(); show("view-home"); toast("All data erased");
 });
 
 /* ================= share via link =================
-   Ledger data is compressed into the URL hash (#d=...). The hash never
+   Ledger data is encoded into the URL hash (#d=...). The hash never
    reaches the server — share.html reads it locally and renders read-only. */
 function encShare(obj){
   const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
@@ -652,7 +745,7 @@ function payloadFor(personId){
   const mk = p => ({name: p.name, entries: personEntries(p.id).slice().reverse()
     .map(e => ({t: e.type === "gave" ? "g" : "r", a: e.amount, ts: e.ts, n: e.reason || e.note || ""}))});
   const list = personId
-    ? [mk(DB.people.find(x => x.id === personId))].filter(Boolean)
+    ? DB.people.filter(x => x.id === personId).map(mk)
     : DB.people.map(mk);
   return {v: 1, cur, at: Date.now(), people: list};
 }
@@ -666,7 +759,7 @@ async function shareLedger(personId){
   const url = base + "#d=" + code;
   if (navigator.share){
     try { await navigator.share({title: "Udhar ledger", text: "View my ledger (read-only):", url}); return; }
-    catch(_){ /* user cancelled or not allowed — fall through to copy */ }
+    catch(e){ if (e.name === "AbortError") return; /* unavailable: offer copy */ }
   }
   try { await navigator.clipboard.writeText(url); toast("Link copied — paste it anywhere 🔗"); }
   catch(_){ prompt("Copy your share link (anyone with it can view):", url); }
@@ -677,19 +770,36 @@ $("pdShareBtn").addEventListener("click", () => shareLedger(curPerson));
 /* ================= backup nudge ================= */
 $("nudgeBackup").addEventListener("click", () => { closeSheets(); $("rowExport").click(); });
 $("nudgeLater").addEventListener("click", () => {
-  localStorage.setItem("udhar_nudge_snooze", Date.now()); closeSheets();
+  remember("udhar_nudge_snooze", Date.now()); closeSheets();
 });
 function maybeBackupNudge(){
   if (!DB.people.length) return;
   const now = Date.now();
-  if (now - (+(localStorage.getItem("udhar_nudge_snooze") || 0)) < 7*864e5) return;
-  if (now - (+(localStorage.getItem("udhar_last_backup") || 0)) < 30*864e5) return;
-  setTimeout(() => openSheet("sheet-nudge"), 1200);
+  if (now - (+(recalled("udhar_nudge_snooze") || 0)) < 7*864e5) return;
+  if (now - (+(recalled("udhar_last_backup") || 0)) < 30*864e5) return;
+  setTimeout(() => { if (!document.querySelector(".sheet.on")) openSheet("sheet-nudge"); }, 1200);
 }
 
+$("recoverRaw").addEventListener("click", () => {
+  $("backupText").value = storedRaw ?? "No saved data could be read. Check device storage before making changes.";
+  closeSheets(); openSheet("sheet-backup");
+});
+$("reloadLedger").addEventListener("click", () => location.reload());
+window.addEventListener("storage", e => {
+  if (e.key === DB_KEY || e.key === null) {
+    storageBlocked = true;
+    storageNotice("Another window changed the saved ledger. Reload before making changes.");
+  }
+});
 /* ================= boot ================= */
+document.querySelectorAll(".fld").forEach(field => {
+  const label = field.querySelector("label"), input = field.querySelector("input, textarea");
+  if (label && input) label.htmlFor = input.id;
+});
+document.querySelectorAll(".srow[id]").forEach(el => { el.setAttribute("role", "button"); el.tabIndex = 0; });
+$("searchInput").setAttribute("aria-label", "Search people");
 renderHome();
-maybeBackupNudge();
+if (!storageBlocked) maybeBackupNudge();
 </script>
 </body>
 </html>
