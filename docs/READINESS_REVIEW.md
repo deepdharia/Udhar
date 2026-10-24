@@ -25,6 +25,7 @@ There were independently verifiable code defects worth fixing before the next te
 | Medium | No usable automated tests; `npm test` intentionally exited with an error. | Core calculation/validation tests and real Chromium browser regression tests. |
 | Low | Settings and action sheets lacked close buttons/focus management; many fields lacked associated labels. | Add dialog semantics, focus return/trapping, Escape, keyboard activation, labels and reduced-motion CSS. |
 | Low | Public listing promised backup safety beyond what manual backups can ensure. Version text lagged the Android build. | Correct wording and update release-candidate metadata. |
+| Low | The starter Android instrumentation test expected the Capacitor template package instead of Udhar. | Correct the assertion to `com.deepdharia.udhar`; execution still requires a device/emulator. |
 | Low | No in-app guidance for testers or structured feedback plan. | Settings → Help & testing and a repo closed-test plan with a private feedback record template. |
 
 ## Verification
@@ -36,7 +37,9 @@ A Node VM run of the original main-branch startup script confirmed that a damage
 - Asset equality: `npm run check:assets` compares every canonical `www/` file with its packaged Android counterpart.
 - Visual inspection: Chromium screenshot of the ledger at 390×844; overflow assertions at 320, 390 and 768 pixels. This does not establish Android WebView appearance or keyboard behaviour.
 - Live URL check: direct HTTP GET returned 200 and the expected Udhar page titles for `https://udhar-dun.vercel.app/`, `/privacy.html`, `/share.html`, and `https://glaral.com/udhar/privacy.html`. The privacy pages contained the Udhar policy heading. These checks cover the deployment before this branch; they do not prove the new release is deployed or which URL Console contains.
-- Android build/lint status: recorded after the build attempt below. No signed production upload or Play Console submission has been performed in this review.
+- Android validation: **BUILD SUCCESSFUL** for `lintRelease testReleaseUnitTest bundleRelease` using JDK 21, Gradle 8.11.1 and SDK 36 (137 tasks). App lint: **0 errors, 11 warnings**, consisting of manifest ordering, redundant/unused resources, missing monochrome launcher icon metadata and bitmap resource placement. Capacitor retains its upstream lint baseline; no new suppression was added. The native unit-test task contains a starter arithmetic test and does not establish device coverage.
+- Built AAB: all **13** canonical web assets match their packaged bytes, including `ledger-core.js` and Help & testing. The local bundle is **unsigned**, not a Play upload artifact; use the existing signed GitHub workflow. No Play Console submission has occurred.
+- Corrected starter instrumentation assertion: source updated to the actual package ID; not executed on a device/emulator.
 
 ## Remaining gates
 

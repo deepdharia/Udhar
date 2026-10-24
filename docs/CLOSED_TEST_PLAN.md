@@ -11,7 +11,7 @@ The shared October 23 conversation proposed general descriptions of invitations,
 ## Before testers update
 
 1. Back up the ledger from the currently installed app. **Do not uninstall or clear storage.**
-2. Merge the reviewed fixes, run the existing signed AAB workflow, and upload the resulting versionCode 8 / 1.0.3 to the **existing closed track**. If Play Console already has a higher version code, raise the code before building.
+2. Run the existing **Build Android AAB** workflow with `fix/closed-test-readiness` selected (or merge the reviewed changes first), then upload the signed versionCode 8 / 1.0.3 to the **existing closed track**. If Play Console already has a higher version code, raise the code before building.
 3. Confirm the signing/upload certificate, application ID `com.deepdharia.udhar`, and that Play offers an update to existing testers. Do not replace the app or testing track.
 4. Update normally from Google Play and verify that existing entries survive. A fresh install is a different test and is not evidence of update safety.
 5. Check the pre-launch report and resolve blocking crash, ANR, accessibility and device-compatibility issues. An automated browser pass is not an Android device pass.
