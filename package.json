@@ -1,10 +1,14 @@
 {
   "name": "udhar",
-  "version": "1.0.0",
-  "description": "",
+  "version": "1.0.3",
+  "description": "Offline personal lending and borrowing ledger",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test tests/ledger.test.cjs",
+    "test:e2e": "playwright test",
+    "sync:assets": "node scripts/sync-assets.cjs",
+    "check:assets": "node scripts/sync-assets.cjs --check",
+    "sync:android": "npm run sync:assets && cap sync android"
   },
   "keywords": [],
   "author": "",
@@ -13,5 +17,8 @@
     "@capacitor/android": "^7.6.9",
     "@capacitor/cli": "^7.6.9",
     "@capacitor/core": "^7.6.9"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1"
   }
 }

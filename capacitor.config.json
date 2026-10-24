@@ -1,5 +1,8 @@
 {
   "appId": "com.deepdharia.udhar",
   "appName": "Udhar",
-  "webDir": "www"
+  "webDir": "www",
+  "android": {
+    "adjustMarginsForEdgeToEdge": "auto"
+  }
 }

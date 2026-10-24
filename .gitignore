@@ -4,3 +4,7 @@ android/app/build/
 android/.gradle/
 *.keystore
 .DS_Store
+
+test-results/
+playwright-report/
+android/local.properties
